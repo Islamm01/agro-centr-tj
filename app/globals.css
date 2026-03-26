@@ -1,0 +1,21 @@
+/* app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root { --font-noto: 'Noto Sans', system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+  body { font-family: var(--font-noto); }
+  ::selection { background: #1a472a; color: #fff; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .bg-agro { background-color: #1a472a; }
+  .text-agro { color: #1a472a; }
+  .border-agro { border-color: #1a472a; }
+}

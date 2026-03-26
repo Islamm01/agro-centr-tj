@@ -1,0 +1,273 @@
+// Digital Agro Center Tajikistan — Prisma Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// AUTH
+// ─────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  phone         String?
+  role          UserRole  @default(CUSTOMER)
+  address       String?
+  city          String?
+  telegramId    String?   // Telegram user ID for notifications
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+  orders   Order[]
+  cart     CartItem[]
+
+  @@index([email])
+  @@index([role])
+}
+
+enum UserRole {
+  CUSTOMER
+  COLLECTOR   // Сборщик / Ҷамъкунанда
+  ADMIN
+}
+
+// ─────────────────────────────────────────────
+// CATALOG
+// ─────────────────────────────────────────────
+
+model Category {
+  id          String   @id @default(cuid())
+  nameRu      String   // Russian name
+  nameTj      String   // Tajik name
+  slug        String   @unique
+  imageUrl    String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@index([slug])
+}
+
+model Product {
+  id             String   @id @default(cuid())
+  nameRu         String
+  nameTj         String
+  slug           String   @unique
+  descriptionRu  String   @db.Text
+  descriptionTj  String   @db.Text
+  pricePerKg     Decimal  @db.Decimal(10, 2) // in TJS
+  minimumOrder   Decimal  @db.Decimal(10, 2) @default(1)
+  maximumOrder   Decimal? @db.Decimal(10, 2)
+  categoryId     String
+  originRegion   String   // e.g. Хатлон, Согд, РРП
+  stockQuantity  Decimal  @db.Decimal(10, 2) @default(0)
+  unit           String   @default("кг")
+  imageUrl       String?
+  isFeatured     Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  isOrganic      Boolean  @default(false)
+  harvestSeason  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  category   Category      @relation(fields: [categoryId], references: [id])
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+  inventory  InventoryLog[]
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([isFeatured, isActive])
+}
+
+// ─────────────────────────────────────────────
+// CART
+// ─────────────────────────────────────────────
+
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  quantity  Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// ORDERS
+// ─────────────────────────────────────────────
+
+model Order {
+  id             String         @id @default(cuid())
+  orderNumber    String         @unique
+  userId         String
+  status         OrderStatus    @default(PENDING)
+  orderType      OrderType
+  deliveryMethod DeliveryMethod
+  totalAmount    Decimal        @db.Decimal(12, 2)
+  deliveryFee    Decimal        @db.Decimal(10, 2) @default(0)
+  notes          String?        @db.Text
+
+  // Customer info
+  customerName   String
+  customerPhone  String
+  deliveryAddress String?
+  deliveryCity    String?
+
+  // Collector assignment
+  collectorId    String?
+  collectorNote  String?
+
+  // Telegram notification tracking
+  tgNotifiedAt   DateTime?
+
+  scheduledDate  DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  user       User             @relation(fields: [userId], references: [id])
+  items      OrderItem[]
+  statusLogs OrderStatusLog[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([collectorId])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String
+  productId   String
+  productName String  // snapshot at time of order
+  quantity    Decimal @db.Decimal(10, 2)
+  unitPrice   Decimal @db.Decimal(10, 2)
+  totalPrice  Decimal @db.Decimal(10, 2)
+  unit        String  @default("кг")
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+}
+
+model OrderStatusLog {
+  id        String      @id @default(cuid())
+  orderId   String
+  status    OrderStatus
+  note      String?
+  createdBy String?
+  createdAt DateTime    @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+enum OrderStatus {
+  PENDING       // Ожидает / Дар интизор
+  CONFIRMED     // Подтверждён / Тасдиқшуда
+  COLLECTING    // Сборщик собирает / Ҷамъ карда мешавад
+  IN_DELIVERY   // В доставке / Дар расонидан
+  COMPLETED     // Завершён / Иҷрошуда
+  CANCELLED     // Отменён / Бекор карда шуд
+}
+
+enum OrderType {
+  RETAIL      // 0–20кг
+  WHOLESALE   // 20–600кг
+  BULK        // 600кг–1т
+  INDUSTRIAL  // 1т+
+}
+
+enum DeliveryMethod {
+  PICKUP            // Самовывоз
+  LOCAL_DELIVERY    // Местная доставка
+  TRUCK_DELIVERY    // Грузовая доставка
+  NEGOTIATED        // Договорная
+}
+
+// ─────────────────────────────────────────────
+// INVENTORY
+// ─────────────────────────────────────────────
+
+model InventoryLog {
+  id        String          @id @default(cuid())
+  productId String
+  change    Decimal         @db.Decimal(10, 2)
+  reason    InventoryReason
+  reference String?
+  note      String?
+  createdAt DateTime        @default(now())
+
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+}
+
+enum InventoryReason {
+  INITIAL
+  RESTOCK
+  SALE
+  ADJUSTMENT
+  DAMAGE
+  RETURN
+}
