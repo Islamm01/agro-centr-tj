@@ -33,7 +33,7 @@ export default function AdminProductRow({ product }: { product: any }) {
             <Pencil size={13} />
           </Link>
           <button
-            onClick={() => { if (confirm("Архивировать продукт?")) startTransition(() => deleteProduct(product.id)); }}
+            onClick={() => { if (confirm("Архивировать продукт?")) startTransition(() => {deleteProduct(product.id);}); }}
             disabled={isPending}
             className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-red-50 text-black/35 hover:text-red-500 transition-colors"
           >

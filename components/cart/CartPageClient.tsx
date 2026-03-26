@@ -25,12 +25,12 @@ export default function CartPageClient({ items }: { items: any[] }) {
   const tier = getOrderTier(totalWeight);
   const subtotal = items.reduce((s, i) => s + Number(i.product.pricePerKg) * Number(i.quantity), 0);
 
-  function handleQty(productId: string, qty: number) {
-    startTransition(() => updateCartItem(productId, qty));
-  }
-  function handleRemove(productId: string) {
-    startTransition(() => removeFromCart(productId));
-  }
+ function handleQty(productId: string, qty: number) {
+     startTransition(() => { updateCartItem(productId, qty); });
+   }
+   function handleRemove(productId: string) {
+     startTransition(() => { removeFromCart(productId); });
+   }
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">

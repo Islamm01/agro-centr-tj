@@ -104,7 +104,7 @@ export default function CheckoutClient({ items, user }: { items: any[]; user: an
                       <input type="radio" value={opt.value} checked={delivery === opt.value} onChange={() => setDelivery(opt.value)} className="sr-only" />
                       <span className="text-[13px] font-semibold">{opt.label[lang]}</span>
                     </div>
-                    <span className="text-[12px] font-bold text-black/35">{opt.fee[lang]}</span>
+                    <span className="text-[12px] font-bold text-black/35">{typeof opt.fee === 'string' ? opt.fee : opt.fee[lang]}</span>
                   </label>
                 ))}
               </div>

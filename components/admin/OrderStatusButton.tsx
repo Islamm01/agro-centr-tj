@@ -17,7 +17,7 @@ export default function OrderStatusButton({ orderId, currentStatus }: { orderId:
 
   return (
     <button
-      onClick={() => startTransition(() => updateOrderStatus(orderId, next.value as any))}
+      onClick={() => startTransition(() => { updateOrderStatus(orderId, next.value as any); })}
       disabled={isPending}
       className={`px-3 py-1.5 text-[11px] font-black rounded-full transition-colors ${next.cls}`}
     >
